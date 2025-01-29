@@ -23,8 +23,10 @@ endif()
 
 if (DPCP_STATIC)
     set(DPCP_LIBRARY_ATTRIBUTES STATIC)
+    set(DPCP_LIBRARY_IMPORTS_SCOPE GLOBAL)
 else()
     set(DPCP_LIBRARY_ATTRIBUTES SHARED)
+    set(DPCP_LIBRARY_IMPORTS_SCOPE) 
 endif()
 
 add_library(dpcp_config INTERFACE)

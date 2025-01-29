@@ -9,8 +9,9 @@ credentials:
   - {credentialsId: 'mellanox_github_credentials', usernameVariable: 'MELLANOX_GH_USER', passwordVariable: 'MELLANOX_GH_TOKEN'}
 
 kubernetes:
-  cloud: swx-k8s-spray
-
+  cloud: il-ipp-blossom-prod
+  nodeSelector: 'beta.kubernetes.io/os=linux'
+  namespace: swx-media
   limits: '{memory: 8Gi, cpu: 8000m}'
   requests: '{memory: 8Gi, cpu: 8000m}'
 

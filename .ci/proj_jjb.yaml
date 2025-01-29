@@ -84,8 +84,8 @@
             failure-status: "[FAIL]"
             error-status:   "[FAIL]"
             status-add-test-results: true
-            # swx-jenkins2 from GitHub Pull Request Builder
-            auth-id: 'swx-jenkins5_gh_token'
+            # svc-nbu-swx-media from GitHub Pull Request Builder
+            auth-id: 'svc-nbu-swx-media_GHPRB_ID'
             org-list: ["Mellanox"]
             allow-whitelist-orgs-as-admins: true
             cancel-builds-on-update: true

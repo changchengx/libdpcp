@@ -46,7 +46,7 @@ style_dir=${WORKSPACE}/${prefix}/style
 tool_dir=${WORKSPACE}/${prefix}/tool
 
 
-if [ -f /.dockerenv ]; then
+if [ -f /.dockerenv ] || [ -f /run/.containerenv ] || [ -n "${KUBERNETES_SERVICE_HOST}" ]; then
     if [ -f /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
         limit=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)
     elif [ -f /sys/fs/cgroup/memory.max/memory.limit_in_bytes ]; then

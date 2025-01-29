@@ -59,7 +59,7 @@ find_package_handle_standard_args(Verbs
 
 if (Verbs_FOUND)
     if (NOT TARGET Verbs::Verbs)
-        add_library(Verbs::Verbs UNKNOWN IMPORTED)
+        add_library(Verbs::Verbs UNKNOWN IMPORTED ${DPCP_LIBRARY_IMPORTS_SCOPE})
         set_target_properties(Verbs::Verbs PROPERTIES 
             IMPORTED_LOCATION ${Verbs_LIBRARY}
         )

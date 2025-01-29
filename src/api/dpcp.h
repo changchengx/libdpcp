@@ -53,7 +53,7 @@
 using std::function;
 using std::unordered_map;
 
-static const char* dpcp_version = "1.1.52";
+static const char* dpcp_version = "1.1.53";
 
 #if defined(__linux__)
 typedef void* LPOVERLAPPED;

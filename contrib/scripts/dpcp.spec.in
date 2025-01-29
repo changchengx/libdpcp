@@ -70,6 +70,8 @@ find $RPM_BUILD_ROOT%{_libdir} -name '*.a' -delete
 %endif
 
 %changelog
+* Wed Jun 18 2025 NVIDIA CORPORATION <networking-support@nvidia.com> 1.1.53-1
+- Bump version to 1.1.53
 * Wed Jan 01 2025 NVIDIA CORPORATION <networking-support@nvidia.com> 1.1.52-1
 - Bump version to 1.1.52
 * Thu Dec 19 2024 NVIDIA CORPORATION <networking-support@nvidia.com> 1.1.51-1
