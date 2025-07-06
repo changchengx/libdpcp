@@ -66,6 +66,7 @@ public:
     {
         return WIN_IBV_ACCESS_LOCAL_WRITE;
     }
+    bool is_alive() const;
 
 private:
     ctx_handle m_handle;

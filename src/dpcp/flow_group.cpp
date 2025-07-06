@@ -166,7 +166,11 @@ status flow_group_prm::create()
 
     // Set match criteria to flow group.
     void* match_params = DEVX_ADDR_OF(create_flow_group_in, in, match_criteria);
-    m_matcher->apply(match_params, m_attr.match_criteria);
+    ret = m_matcher->apply(match_params, m_attr.match_criteria);
+    if (ret != DPCP_OK) {
+        log_error("Failed to apply match criteria to flow group, ret %d\n", ret);
+        return ret;
+    }
 
     // Create flow group HW object.
     ret = obj::create(in, sizeof(in), out, outlen);
@@ -202,8 +206,12 @@ status flow_group_prm::get_table_id(uint32_t& table_id) const
     }
 
     uint32_t t_id = 0;
-    status ret =
-        std::dynamic_pointer_cast<const flow_table_prm>(m_table.lock())->get_table_id(t_id);
+    auto flow_table = std::dynamic_pointer_cast<const flow_table_prm>(m_table.lock());
+    if (!flow_table) {
+        log_error("Flow table is not valid\n");
+        return DPCP_ERR_INVALID_PARAM;
+    }
+    status ret = flow_table->get_table_id(t_id);
     if (ret != DPCP_OK) {
         log_error("Flow table is not valid, should not be here\n");
         return DPCP_ERR_QUERY;

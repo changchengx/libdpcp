@@ -64,6 +64,10 @@ public:
     {
         return IBV_ACCESS_LOCAL_WRITE;
     }
+    inline bool is_alive() const
+    {
+        return true;
+    }
 
 private:
     ctx_handle m_handle;

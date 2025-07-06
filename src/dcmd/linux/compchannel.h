@@ -32,6 +32,8 @@
 #ifndef SRC_DCMD_LINUX_COMPCHANNEL_H_
 #define SRC_DCMD_LINUX_COMPCHANNEL_H_
 
+#include "def.h"
+
 namespace dcmd {
 
 struct compchannel_ctx {
@@ -43,25 +45,19 @@ class compchannel {
 private:
     ctx_handle m_ctx;
     cq_handle m_cq_obj;
-    comp_channel m_event_channel;
-    bool m_binded;
-    bool m_solicited;
+    event_channel_handle m_event_channel;
+    bool m_bound;
 
 public:
-    compchannel()
-    {
-        m_ctx = nullptr;
-        m_binded = false;
-    }
     compchannel(ctx_handle handle);
     virtual ~compchannel();
 
-    int bind(cq_handle cq_obj, bool solicited_only);
+    int bind(cq_handle cq_obj);
     int unbind();
     int get_comp_channel(event_channel*& ch);
     int request(compchannel_ctx& cc_ctx);
     int query(void*& cq_ctx);
-    void flush(uint32_t n_events);
+    void flush();
 };
 
 } /* namespace dcmd */

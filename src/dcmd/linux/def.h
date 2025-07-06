@@ -45,7 +45,8 @@ typedef struct mlx5dv_devx_obj* obj_handle;
 typedef struct mlx5dv_devx_umem* umem_handle;
 typedef struct mlx5dv_devx_uar* uar_handle;
 typedef struct ibv_flow* flow_handle;
-typedef struct ibv_cq* cq_handle;
+typedef struct mlx5dv_devx_obj* cq_handle;
+typedef struct mlx5dv_devx_event_channel* event_channel_handle;
 /*
  * Packet Pacing
  */
@@ -69,9 +70,7 @@ inline uint32_t get_pp_index(pp_handle* pp)
 #define IS_ERR(ptr) (nullptr == ptr)
 
 #if !defined(EVENT_CHANNEL)
-typedef struct {
-    int fd;
-} event_channel;
+using event_channel = int;
 #define EVENT_CHANNEL
 #endif
 

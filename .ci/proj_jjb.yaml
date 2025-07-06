@@ -30,7 +30,7 @@
             description: "(not enabled yet) Location to release rpm/deb packages"
         - string:
             name: "DOCA_VERSION"
-            default: "2.8.0"
+            default: "3.2.0"
             description: "DOCA version - see https://developer.nvidia.com/doca-downloads?deployment_platform=Host-Server&deployment_package=DOCA-Host"
         - choice:
             name: DOCA_BRANCH

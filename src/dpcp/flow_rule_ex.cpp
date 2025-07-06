@@ -112,8 +112,16 @@ status flow_rule_ex_prm::alloc_in_buff(size_t& in_len, std::unique_ptr<uint8_t[]
     size_t dest_list_size = 0;
     auto action_fwd = m_actions.find(std::type_index(typeid(flow_action_fwd)));
     if (action_fwd != m_actions.end()) {
-        dest_list_size =
-            std::dynamic_pointer_cast<flow_action_fwd>(action_fwd->second)->get_dest_num();
+        auto flow_action_fwd_table = std::dynamic_pointer_cast<flow_action_fwd>(action_fwd->second);
+        if (flow_action_fwd_table) {
+            dest_list_size = flow_action_fwd_table->get_dest_num();
+        } else {
+            log_error("Flow action forward table is not valid\n");
+            return DPCP_ERR_INVALID_PARAM;
+        }
+    } else {
+        log_error("Flow Rule must have Flow Action forward to destination\n");
+        return DPCP_ERR_INVALID_PARAM;
     }
 
     // Allocate in buffer.
@@ -135,8 +143,16 @@ status flow_rule_ex_prm::config_flow_rule(void* in)
     status ret = DPCP_OK;
     std::shared_ptr<const flow_table_prm> prm_table =
         std::dynamic_pointer_cast<const flow_table_prm>(m_table.lock());
+    if (!prm_table) {
+        log_error("Flow table is not valid\n");
+        return DPCP_ERR_INVALID_PARAM;
+    }
     std::shared_ptr<const flow_group_prm> prm_group =
         std::dynamic_pointer_cast<const flow_group_prm>(m_group.lock());
+    if (!prm_group) {
+        log_error("Flow group is not valid\n");
+        return DPCP_ERR_INVALID_PARAM;
+    }
 
     DEVX_SET(set_fte_in, in, opcode, MLX5_CMD_OP_SET_FLOW_TABLE_ENTRY);
     DEVX_SET(set_fte_in, in, flow_index, m_flow_index);
@@ -313,7 +329,12 @@ status flow_rule_ex_kernel::create()
     }
 
     // Create dcmd flow object.
-    m_flow = get_ctx()->create_flow(&dcmd_flow);
+    auto ctx = get_ctx();
+    if (!ctx) {
+        log_error("Flow Rule failed to get device context\n");
+        return DPCP_ERR_NO_CONTEXT;
+    }
+    m_flow = ctx->create_flow(&dcmd_flow);
     return m_flow ? DPCP_OK : DPCP_ERR_CREATE;
 }
 

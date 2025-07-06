@@ -44,13 +44,36 @@ ctx::ctx(dev_handle handle)
         throw DCMD_ENOTSUP;
     }
     m_handle = dvd_ctx;
+    log_trace("ctx created handle=%p devx_ctx=%p\n", handle, m_handle);
 }
 
 ctx::~ctx()
 {
+    log_trace("ctx destroy devx_ctx %p\n", m_handle);
     if (m_handle) {
         devx_close_device(m_handle);
         m_handle = nullptr;
+    }
+}
+
+bool ctx::is_alive() const
+{
+    struct devx_shutdown_event ev;
+    memset(&ev, sizeof(ev), 0);
+    int ret = devx_query_shutdown_event(m_handle, &ev);
+    if (ret) {
+        log_error("devx_query_shutdown_event failed with error %s\n", strerror(-ret));
+        return false;
+    }
+    if (!ev.p_flag) {
+        log_error("p_flag pointer isn't set in shutdown event!\n");
+        return false;
+    }
+    if (*ev.p_flag) {
+        log_info("devx_ctx %p is dead\n", m_handle);
+        return false;
+    } else {
+        return true;
     }
 }
 

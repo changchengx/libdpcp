@@ -841,6 +841,11 @@ adapter::adapter(dcmd::device* dev, dcmd::ctx* ctx)
     set_external_hca_caps();
 }
 
+bool adapter::is_alive() const
+{
+    return m_dcmd_ctx->is_alive();
+}
+
 status adapter::set_pd(uint32_t pdn, void* ibv_pd)
 {
     if (0 == pdn || nullptr == ibv_pd) {
@@ -1337,13 +1342,25 @@ status adapter::create_ibq_rq(rq_attr& rq_attr, dpcp_ibq_protocol ibq_protocol, 
 
 std::shared_ptr<flow_table> adapter::get_root_table(flow_table_type type)
 {
+    status ret = DPCP_OK;
+
     if (type >= flow_table_type::FT_END || type < 0) {
         return std::shared_ptr<flow_table>();
     }
 
     if (!m_root_table_arr[type]) {
-        m_root_table_arr[type].reset(new (std::nothrow) flow_table_kernel(m_dcmd_ctx, type));
-        m_root_table_arr[type]->create();
+        auto root_flow_table = std::shared_ptr<flow_table_kernel>(
+            new (std::nothrow) flow_table_kernel(m_dcmd_ctx, type));
+        if (!root_flow_table) {
+            log_error("Failed to allocate flow table of type %d\n", type);
+            return std::shared_ptr<flow_table>();
+        }
+        ret = root_flow_table->create();
+        if (DPCP_OK != ret) {
+            log_error("Failed to create flow table of type %d, ret %d\n", type, ret);
+            return std::shared_ptr<flow_table>();
+        }
+        m_root_table_arr[type] = std::move(root_flow_table);
     }
 
     return m_root_table_arr[type];
@@ -1819,7 +1836,11 @@ status packet_pacing::create()
     DEVX_SET(set_pp_rate_limit_context, &pp, typical_packet_size, m_attr.packet_sz);
     DEVX_SET(set_pp_rate_limit_context, &pp, rate_limit, m_attr.sustained_rate);
     DEVX_SET(set_pp_rate_limit_context, &pp, rate_mode, MLX5_PP_DATA_RATE);
-    m_pp_handle = devx_alloc_pp((ctx_handle)get_ctx()->get_context(), pp, sizeof(pp), 0);
+    auto ctx = get_ctx();
+    if (nullptr == ctx) {
+        return DPCP_ERR_NO_CONTEXT;
+    }
+    m_pp_handle = devx_alloc_pp((ctx_handle)ctx->get_context(), pp, sizeof(pp), 0);
     if (IS_ERR(m_pp_handle)) {
         log_error("alloc_pp failed, errno %d for rate %u burst %u packet_sz %u\n", errno,
                   m_attr.sustained_rate, m_attr.burst_sz, m_attr.packet_sz);

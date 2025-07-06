@@ -38,21 +38,19 @@ using namespace dcmd;
 compchannel::compchannel(ctx_handle ctx)
     : m_ctx(ctx)
     , m_handle(INVALID_HANDLE_VALUE)
-    , m_binded(false)
+    , m_bound(false)
+    , m_adapter_shutdown(false)
 {
-    if (INVALID_HANDLE_VALUE == m_handle) {
-        int err = devx_overlapped_file_open(m_ctx, &m_handle);
-        if (err) {
-            log_error("overlapped_file_open failed ret=0x%x\n", err);
-            throw DCMD_ENOTSUP;
-        }
+    int err = devx_overlapped_file_open(m_ctx, &m_handle);
+    if (err) {
+        log_error("overlapped_file_open failed ret=0x%x\n", err);
+        throw DCMD_ENOTSUP;
     }
     log_trace("overlapped file handle %p\n", m_handle);
 }
 
-int compchannel::bind(obj_handle src_obj, bool solicited)
+int compchannel::bind(obj_handle src_obj)
 {
-    UNUSED(solicited);
     if (src_obj) {
         m_cq_obj = src_obj;
     } else {
@@ -66,15 +64,15 @@ int compchannel::bind(obj_handle src_obj, bool solicited)
         return DCMD_EIO;
     }
     log_trace("overlapped_io_enable ret = %d\n", err);
-    m_binded = true;
+    m_bound = true;
     return err;
 }
 
 int compchannel::unbind()
 {
     // After flush completions will not be generated till next park (query)
-    flush(0);
-    m_binded = false;
+    flush();
+    m_bound = false;
     return DCMD_EOK;
 }
 
@@ -104,16 +102,15 @@ int compchannel::request(compchannel_ctx& cc_ctx)
     return DCMD_EOK;
 }
 
-void compchannel::flush(uint32_t unused)
+void compchannel::flush()
 {
-    UNUSED(unused);
-    if (m_binded) {
+    if (m_bound) {
         devx_overlapped_io_flush(m_cq_obj, DEVX_EVENT_TYPE_CQE);
     }
 }
 
 compchannel::~compchannel()
 {
-    flush(0);
+    flush();
     CloseHandle(m_handle);
 }

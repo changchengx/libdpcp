@@ -60,7 +60,7 @@ status comp_channel::bind(cq& in_cq)
     if (ret) {
         return ret;
     }
-    int err = m_cc->bind((cq_handle)obj_h, false);
+    int err = m_cc->bind((cq_handle)obj_h);
     if (err) {
         return DPCP_ERR_NO_DEVICES;
     }
@@ -100,7 +100,7 @@ status comp_channel::request(cq& for_cq, eq_context& eq_ctx)
 status comp_channel::flush(cq& for_cq)
 {
     UNUSED(for_cq); // TODO: add processing
-    m_cc->flush(0);
+    m_cc->flush();
     return DPCP_OK;
 }
 

@@ -100,7 +100,7 @@ TEST_F(dcmd_compchannel, ti_02_bind)
     }
     EXPECT_NE(nullptr, cc);
 
-    int ret = cc->bind(nullptr, false);
+    int ret = cc->bind(nullptr);
     EXPECT_EQ(DCMD_EINVAL, ret);
 
     delete ctx;
@@ -124,7 +124,7 @@ TEST_F(dcmd_compchannel, ti_03_unbind)
     }
     EXPECT_NE(nullptr, cc);
 
-    int ret = cc->bind(nullptr, false);
+    int ret = cc->bind(nullptr);
     EXPECT_EQ(DCMD_EINVAL, ret);
 
     ret = cc->unbind();
@@ -151,13 +151,13 @@ TEST_F(dcmd_compchannel, ti_04_flush)
     }
     EXPECT_NE(nullptr, cc);
 
-    int ret = cc->bind(nullptr, false);
+    int ret = cc->bind(nullptr);
     EXPECT_EQ(DCMD_EINVAL, ret);
 
     ret = cc->unbind();
     EXPECT_EQ(DCMD_EOK, ret);
 
-    cc->flush(0);
+    cc->flush();
 
     delete ctx;
 }

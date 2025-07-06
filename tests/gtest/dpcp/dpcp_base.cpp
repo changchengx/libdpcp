@@ -98,39 +98,6 @@ adapter* dpcp_base::OpenAdapter(uint32_t vendor_part_id)
     return nullptr;
 }
 
-#if defined(__linux__)
-int dpcp_base::create_cq(adapter* ad, cq_data* dv_cq)
-{
-    ibv_context* ctx = (ibv_context*)ad->get_ibv_context();
-    errno = 0;
-    uint32_t cq_sz = 4096 * 4;
-    struct ibv_cq* cq = ibv_create_cq(ctx, cq_sz, nullptr, nullptr, 0);
-    if (!cq) {
-        log_error("failed creating CQ errno=0x%x", errno);
-        return -1;
-    }
-    mlx5dv_obj obj;
-    struct mlx5dv_cq out;
-    obj.cq.in = cq;
-    obj.cq.out = &out;
-
-    int ret = mlx5dv_init_obj(&obj, MLX5DV_OBJ_CQ);
-    if (ret) {
-        log_error("Failed getting CQ attributes ret=0x%x\n", ret);
-        return -1;
-    }
-    dv_cq->buf = out.buf;
-    dv_cq->cq_size = out.cqe_cnt;
-    dv_cq->cqe_size = out.cqe_size;
-    dv_cq->cqn = out.cqn;
-    dv_cq->dbrec = out.dbrec;
-    dv_cq->p_cq_ci = 0;
-
-    log_trace("cq %p buf %p cq_sz %d cqe_cz %d cqn 0x%x\n", cq, dv_cq->buf, dv_cq->cq_size,
-              dv_cq->cqe_size, dv_cq->cqn);
-    return 0;
-}
-#else
 int dpcp_base::create_cq(adapter* ad, cq_data* dv_cq)
 {
     errno = 0;
@@ -166,7 +133,6 @@ int dpcp_base::create_cq(adapter* ad, cq_data* dv_cq)
               dv_cq->cqe_size, dv_cq->cqn);
     return 0;
 }
-#endif
 
 striding_rq* dpcp_base::open_str_rq(adapter* ad, rq_params& rqp)
 {

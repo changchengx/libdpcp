@@ -41,27 +41,21 @@ struct compchannel_ctx {
 
 class compchannel {
 private:
-    OVERLAPPED m_overlapped_ctx;
     ctx_handle m_ctx;
     obj_handle m_cq_obj;
     event_channel m_handle;
-    bool m_binded;
+    bool m_bound;
     bool m_adapter_shutdown;
 
 public:
-    compchannel()
-    {
-        m_ctx = nullptr;
-        m_binded = false;
-    }
     compchannel(ctx_handle handle);
     virtual ~compchannel();
 
-    int bind(obj_handle src_obj, bool unused);
+    int bind(obj_handle src_obj);
     int unbind();
     int get_comp_channel(event_channel*& ch);
     int request(compchannel_ctx& cc_ctx);
-    void flush(uint32_t unused);
+    void flush();
 };
 
 } /* namespace dcmd */

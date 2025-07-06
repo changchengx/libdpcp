@@ -39,94 +39,129 @@ using namespace dcmd;
 compchannel::compchannel(ctx_handle ctx)
     : m_ctx(ctx)
     , m_cq_obj(nullptr)
-    , m_binded(false)
-    , m_solicited(false)
+    , m_bound(false)
 {
-    // use ibv_completion_channel interface for this case
-    comp_channel* cch = ibv_create_comp_channel(m_ctx);
-
-    if (nullptr == cch) {
-        log_error("create_comp_channel failed errno=0x%x\n", errno);
+    constexpr enum mlx5dv_devx_create_event_channel_flags flags =
+        MLX5DV_DEVX_CREATE_EVENT_CHANNEL_FLAGS_OMIT_EV_DATA;
+    event_channel_handle new_channel = mlx5dv_devx_create_event_channel(m_ctx, flags);
+    if (nullptr == new_channel) {
+        log_error("create_event_channel failed, error: %s\n", strerror(errno));
         throw DCMD_ENOTSUP;
     }
-    m_event_channel = *cch;
+    m_event_channel = new_channel;
 }
 
-int compchannel::bind(cq_handle cq_obj, bool solicited_only)
+int compchannel::bind(cq_handle cq_obj)
 {
     if (cq_obj) {
         m_cq_obj = cq_obj;
-        m_solicited = solicited_only;
     } else {
+        log_error("Associated CQ object is missing\n");
         return DCMD_EINVAL;
     }
-    int err = ibv_req_notify_cq(m_cq_obj, m_solicited);
+
+    uint16_t events_num[] = {MLX5_EVENT_TYPE_CODING_COMPLETION_EVENTS};
+    int err = mlx5dv_devx_subscribe_devx_event(m_event_channel, cq_obj, sizeof(events_num),
+                                               events_num, reinterpret_cast<uint64_t>(cq_obj));
+
     if (err) {
-        log_error("bind req_notify_cq ret= %d errno=%d\n", err, errno);
+        log_error("bind: subscribe_devx_event failed, ret= %d error: %s\n", err, strerror(errno));
         return DCMD_EIO;
     }
-    m_binded = true;
+    m_bound = true;
     return err;
 }
 
 int compchannel::unbind()
 {
-    m_binded = false;
+    flush();
+    m_bound = false;
     return DCMD_EOK;
 }
 
 int compchannel::get_comp_channel(::event_channel*& ch)
 {
-    ch = (::event_channel*)&m_event_channel;
+    ch = &m_event_channel->fd;
     return DCMD_EOK;
 }
 
 int compchannel::request(compchannel_ctx& cc_ctx)
 {
-    UNUSED(cc_ctx);
+    if (!m_bound) {
+        log_error("request: channel not bound to any CQ\n");
+        return DCMD_EINVAL;
+    }
 
-    int err = ibv_req_notify_cq(m_cq_obj, m_solicited);
-    if (err) {
-        log_error("bind req_notify_cq ret= %d errno=%d\n", err, errno);
+    uint32_t num_events = 0;
+    mlx5dv_devx_async_event_hdr event_hdr;
+    ssize_t ret;
+
+    do {
+        ret = mlx5dv_devx_get_event(m_event_channel, &event_hdr, sizeof(event_hdr));
+        if (ret == sizeof(event_hdr)) {
+            void* event_cookie = reinterpret_cast<void*>(event_hdr.cookie);
+            if (event_cookie != m_cq_obj) {
+                log_error("Mismatch completions. Received for cq=%p but bound to cq=%p\n",
+                          event_cookie, m_cq_obj);
+                return DCMD_EIO;
+            }
+            num_events++;
+        }
+    } while (ret == sizeof(event_hdr));
+
+    if (ret < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+        log_error("request: devx_get_event failed, ret=%zd error: %s\n", ret, strerror(errno));
         return DCMD_EIO;
     }
+
+    cc_ctx.eqe_nums = num_events;
+
     return DCMD_EOK;
 }
 
 int compchannel::query(void*& ctx)
 {
-    cq_handle event_cq = nullptr;
-    void* cq_ctx = nullptr;
-    int err = ibv_get_cq_event(&m_event_channel, &event_cq, &cq_ctx);
+    if (!m_bound) {
+        log_error("query: channel not bound to any CQ\n");
+        return DCMD_EINVAL;
+    }
 
-    if (err) {
-        log_error("query get_cq_event ret= %d errno=%d\n", err, errno);
-        return DCMD_EIO;
-    }
-    if (m_cq_obj != event_cq) {
-        log_error("complitions for cq=%p, binded cq=%p\n", event_cq, m_cq_obj);
-        return DCMD_EIO;
-    }
-    ctx = cq_ctx;
+    // Return the CQ object as context
+    ctx = m_cq_obj;
     return DCMD_EOK;
 }
 
-void compchannel::flush(uint32_t nevents)
+void compchannel::flush()
 {
-    if (m_cq_obj && nevents) {
-        ibv_ack_cq_events(m_cq_obj, nevents);
-        log_trace("flush() compchannel OK\n");
-    } else {
-        log_warn("flush() compchannel nothing to do\n");
+    if (!m_bound) {
+        return;
+    }
+
+    mlx5dv_devx_async_event_hdr event_hdr;
+    ssize_t ret;
+    uint32_t flushed_count = 0;
+
+    // Loop until no more events are available to consume
+    do {
+        ret = mlx5dv_devx_get_event(m_event_channel, &event_hdr, sizeof(event_hdr));
+        if (ret == sizeof(event_hdr)) {
+            flushed_count++;
+            // Event consumed/flushed - continue to get more
+        }
+    } while (ret == sizeof(event_hdr));
+
+    if (ret < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+        log_error("flush() devx_get_event failed, ret=%zd error: %s\n", ret, strerror(errno));
+    }
+
+    if (flushed_count > 0) {
+        log_trace("flush() compchannel flushed %u events\n", flushed_count);
     }
 }
 
 compchannel::~compchannel()
 {
-    int err = ibv_destroy_comp_channel(&m_event_channel);
-    if (err) {
-        log_error("DTR compchannel ret = %d\n", err);
-    } else {
-        log_trace("DTR compchannel OK\n");
-    }
+    unbind();
+    mlx5dv_devx_destroy_event_channel(m_event_channel);
+    log_trace("DTR compchannel OK\n");
 }
