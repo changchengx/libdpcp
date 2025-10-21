@@ -2808,10 +2808,17 @@ struct mlx5_ifc_nvmeotcp_cap_bits {
 struct mlx5_ifc_ibq_cap_bits {
     u8 ibq_wire_protocol[0x40];
 
-    u8 reserverd_at_40[0x28];
+    u8 max_scatter_size[0x10];
+    u8 reserved_at_50[0x3];
+    u8 log_min_ibq_segment_size[0x5];
+    u8 reserved_at_58[0x3];
+    u8 log_max_ibq_segment_size[0x5];
 
+    u8 reserved_at_60[0x8];
     u8 ibq_max_scatter_offset[0x8];
-    u8 reserverd_at_70[0x10];
+    u8 reserved_at_70[0x3];
+    u8 log_max_ibq_buffer_size[0x5];
+    u8 max_psn_size_supported[0x8];
 
     u8 reserverd_at_80[0x760];
 };

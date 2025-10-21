@@ -35,6 +35,10 @@
             name: "do_release"
             default: true
             description: "Release build packges into the release folder, set to false for debugging"
+        - bool:
+            name: "do_antivirus"
+            default: true
+            description: "Run antivirus scan on the release packages"
         - string:
             name: "notification_email"
             default: "{jjb_release_email}"
@@ -43,14 +47,17 @@
             name: "conf_file"
             default: ".ci/pipeline/release_matrix_job.yaml"
             description: "job config file. Do not change it"
+        - bool:
+            name: "do_dr_build"
+            default: false
+            description: "Build DR weekly"
     pipeline-scm:
         scm:
             - git:
                 url: "{jjb_git}"
-                credentials-id: 'swx-jenkins_ssh_key'
+                credentials-id: 'svc-nbu-swx-media_ssh_key'
                 branches: ['$sha1']
-                shallow-clone: true
-                depth: 2
+                shallow-clone: false
                 refspec: "+refs/pull/*:refs/remotes/origin/pr/*"
                 browser: githubweb
                 browser-url: "{jjb_git}"
@@ -66,4 +73,3 @@
     jjb_release_email: '838a241d.NVIDIA.onmicrosoft.com@amer.teams.ms'
     jobs:
         - '{jjb_proj}':
-        

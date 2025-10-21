@@ -30,34 +30,43 @@ else()
 endif()
 
 add_library(dpcp_config INTERFACE)
+
 if (MSVC)
+    set_target_properties(dpcp_config PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+
     set(DPCP_C_CXX_FLAGS
-        /GS /GL /W4 /Gy 
-        /Zc:wchar_t- 
-        /Qspectre 
-        /Zi /sdl 
-        /Zc:inline 
-        /fp:fast 
-        /D_UNICODE /DUNICODE 
-        /D_WIN64 /D_AMD64_ /DAMD64 /DWIN32_LEAN_AND_MEAN=1 
-        /D_ALLOW_RUNTIME_LIBRARY_MISMATCH 
-        /D_CRT_SECURE_NO_WARNINGS
-        /D_SECURE_SCL=0 
-        /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS 
-        /D_NO_CRT_STDIO_INLINE /D_CRTIMP_= 
-        /errorReport:prompt 
-        /WX 
-        /Zc:forScope 
-        /GR /Gz /Oi /MD 
-        /nologo 
-        /D_HAS_ITERATOR_DEBUGGING=0 
-        /Gm- 
-        /EHsc
+        /W4
+        /WX
+        /fp:fast
     )
-    set(DPCP_CXX_FLAGS
+    target_compile_options(dpcp_config INTERFACE $<$<COMPILE_LANGUAGE:C,CXX>:${DPCP_C_CXX_FLAGS}>)
+
+    target_compile_definitions(dpcp_config INTERFACE
+        WIN32_LEAN_AND_MEAN=1
+        NOMINMAX
+        _WINSOCK_DEPRECATED_NO_WARNINGS
+        _CRT_SECURE_NO_WARNINGS
+        UNICODE
+        _UNICODE
     )
+
+    set(DPCP_MSVC_DEBUG_MODE_WARNINGS
+        _SCL_SECURE_NO_WARNINGS
+        _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
+        _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS
+    )
+    target_compile_definitions(dpcp_config INTERFACE $<$<CONFIG:Debug>:${DPCP_MSVC_DEBUG_MODE_WARNINGS}>)
+
+    # Define the Windows version and the minimum required Windows version as Windows 10 20H2 (Oct 2020),
+    # to allow using features like: High-Performance Networking, NUMA Improvements, Large Pages, Modern Synchronization.
+    target_compile_definitions(dpcp_config INTERFACE
+        WINVER=0x0A00
+        _WIN32_WINNT=0x0A00
+        NTDDI_VERSION=0x0A00000A
+    )
+
 else()
-    set(DPCP_C_CXX_FLAGS
+    target_compile_options(dpcp_config INTERFACE
         -Wall
         -Wextra
         -Werror
@@ -72,10 +81,19 @@ else()
         -Wmissing-include-dirs
         -D_GNU_SOURCE
     )
+
+    set(DPCP_CXX_ONLY_FLAGS 
+        -Wno-overloaded-virtual
+        -Woverloaded-virtual
+        -Wnon-virtual-dtor
+    )
+    target_compile_options(dpcp_config INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${DPCP_CXX_ONLY_FLAGS}>)
+
     if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
-        DpcpAppendCompileFlags(DPCP_C_CXX_FLAGS -fstack-protector-strong -fstack-clash-protection)
-        set(CMAKE_SHARED_LINKER_FLAGS "-z relro -z now -z noexecstack")
+        target_compile_options(dpcp_config INTERFACE -fstack-protector-strong -fstack-clash-protection)
+        target_link_options(dpcp_config INTERFACE "-z,relro,-z,now,-z,noexecstack")
     endif()
+
     set(DPCP_CXX_FLAGS
         -Wshadow
         -Wno-overloaded-virtual
@@ -92,12 +110,13 @@ else()
             message(WARNING "IPO is not supported: ${output_log}")
         endif()
     endif()
+
     set(DPCP_PGO_PROFILE_PATH "" CACHE PATH "PGO Profile directory. When specified, enables PGO Profile optimization.")
     set(DPCP_GENERATE_PGO OFF CACHE BOOL "When PGO is enabled, if ON - generates a new profile, if OFF - uses the existing one. " FORCE)
 
     if (DPCP_PGO_PROFILE_PATH)
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            list(APPEND DPCP_C_CXX_FLAGS
+            target_compile_options(dpcp_config INTERFACE
                 -fprofile-$<IF:$<BOOL:${DPCP_GENERATE_PGO}>,generate,use>
                 -fprofile-correction
                 -Wno-error=missing-profile
@@ -105,13 +124,12 @@ else()
                 -fprofile-dir=${DPCP_PGO_PROFILE_PATH}
             )
         elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            list(APPEND DPCP_C_CXX_FLAGS
+            target_compile_options(dpcp_config INTERFACE
                 --coverage
                 -fprofile-$<IF:$<BOOL:${DPCP_GENERATE_PGO}>,generate,use>=${DPCP_PGO_PROFILE_PATH}
             )
         endif()
         target_link_libraries(dpcp_config INTERFACE $<$<BOOL:${DPCP_GENERATE_PGO}>:gcov>)
     endif()
+
 endif()
-target_compile_options(dpcp_config INTERFACE $<$<COMPILE_LANGUAGE:CXX,C>:${DPCP_C_CXX_FLAGS}>) 
-target_compile_options(dpcp_config INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${DPCP_CXX_FLAGS}>)

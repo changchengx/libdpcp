@@ -800,6 +800,25 @@ TEST_F(dpcp_adapter, ti_17_get_hca_capabilities)
     } else {
         log_trace("Capability - nvmeotcp: 0\n");
     }
+    if (caps.ibq) {
+        log_trace("Capability - ibq: 1\n");
+        log_trace("Capability - ibq_wire_protocol: 0x%llx\n",
+                  static_cast<unsigned long long>(caps.ibq_wire_protocol));
+        log_trace("Capability - max_scatter_size: %d\n", caps.max_scatter_size);
+        log_trace("Capability - log_min_ibq_segment_size: %d (IBQ min segment size in bytes: %llu)\n",
+                  caps.log_min_ibq_segment_size,
+                  1ULL << caps.log_min_ibq_segment_size);
+        log_trace("Capability - log_max_ibq_segment_size: %d (IBQ max segment size in bytes: %llu)\n",
+                  caps.log_max_ibq_segment_size,
+                  1ULL << caps.log_max_ibq_segment_size);
+        log_trace("Capability - ibq_max_scatter_offset: %d\n", caps.ibq_max_scatter_offset);
+        log_trace("Capability - log_max_ibq_buffer_size: %d (IBQ max buffer size in bytes: %llu)\n",
+                  caps.log_max_ibq_buffer_size,
+                  1ULL << caps.log_max_ibq_buffer_size);
+        log_trace("Capability - max_psn_size_supported: %d\n", caps.max_psn_size_supported);
+    } else {
+        log_trace("Capability - ibq: 0\n");
+    }
 
     delete ad;
 }

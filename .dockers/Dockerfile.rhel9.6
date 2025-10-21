@@ -15,18 +15,19 @@ RUN dnf remove subscription-manager -y && \
     dnf install -y perl-libwww-perl && \
     rm -rf /var/cache/dnf
 
-RUN sed -i 's/mirrorlist/#mirrorlist/;s!#baseurl=http://mirror.centos.org!baseurl=http://vault.centos.org!' /etc/yum.repos.d/* && \
+RUN sed -i "s#http://webrepo#http://${WEBREPO_URL}#" /etc/yum.repos.d/* && \
+    sed -i 's/mirrorlist/#mirrorlist/;s!#baseurl=http://mirror.centos.org!baseurl=http://vault.centos.org!' /etc/yum.repos.d/* && \
     ## Disable UBI repo that comes from source container
     rm -f /etc/yum.repos.d/ubi.repo && \
     ## Add webrepo RH repos
     echo "[mlnx-opt]" > /etc/yum.repos.d/mlnx-opt.repo && \
     echo "name=RHEL 9.6 mirror" >> /etc/yum.repos.d/mlnx-opt.repo && \
-    echo "baseurl=http://webrepo.mtr.labs.mlnx/RH/9.6/${ARCH}/BaseOS" >> /etc/yum.repos.d/mlnx-opt.repo && \
+    echo "baseurl=http://${WEBREPO_URL}/RH/9.6/${ARCH}/BaseOS" >> /etc/yum.repos.d/mlnx-opt.repo && \
     echo "enabled=1" >> /etc/yum.repos.d/mlnx-opt.repo && \
     echo "gpgcheck=0" >> /etc/yum.repos.d/mlnx-opt.repo && \
     echo "[mlnx-Ext]" >> /etc/yum.repos.d/mlnx-opt.repo && \
     echo "name=RHEL 9.6 Ext mirror" >> /etc/yum.repos.d/mlnx-opt.repo && \
-    echo "baseurl=http://webrepo.mtr.labs.mlnx/RH/9.6/${ARCH}/AppStream" >> /etc/yum.repos.d/mlnx-opt.repo && \
+    echo "baseurl=http://${WEBREPO_URL}/RH/9.6/${ARCH}/AppStream" >> /etc/yum.repos.d/mlnx-opt.repo && \
     echo "enabled=1" >> /etc/yum.repos.d/mlnx-opt.repo && \
     echo "gpgcheck=0" >> /etc/yum.repos.d/mlnx-opt.repo && \
     echo "[mlnx-CRB]" >> /etc/yum.repos.d/mlnx-opt.repo && \

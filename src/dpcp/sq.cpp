@@ -364,7 +364,7 @@ status pp_sq::init(const uar_t* sq_uar)
         // Per PRM doc burst_sz = 0  is valid "and indicates packet bursts will be limited
         // to the device defauts". Packet_sz = 0 is also valid and "indicates the packet
         // size is unknown, and assumed to be MTU"
-        packet_pacing* pp = new (std::nothrow) packet_pacing(get_ctx(), pp_attr);
+        std::unique_ptr<packet_pacing> pp(new (std::nothrow) packet_pacing(get_ctx(), pp_attr));
         if (!pp) {
             log_error("Packet Pacing wasn't set for rate %d\n", pp_attr.sustained_rate);
             return DPCP_ERR_CREATE;
@@ -376,7 +376,7 @@ status pp_sq::init(const uar_t* sq_uar)
             return ret;
         }
         m_pp_idx = pp->get_index();
-        m_pp = pp;
+        m_pp = pp.release();
     }
     ret = create();
 

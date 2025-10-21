@@ -18,6 +18,7 @@ target_sources(${PROJECT_NAME}
         ${CMAKE_CURRENT_LIST_DIR}/adapter_tests.cpp
         ${CMAKE_CURRENT_LIST_DIR}/dek_tests.cpp
         ${CMAKE_CURRENT_LIST_DIR}/dpcp_base.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/err_cqe_tests.cpp
         ${CMAKE_CURRENT_LIST_DIR}/flow_group_tests.cpp
         ${CMAKE_CURRENT_LIST_DIR}/flow_rule_ex_tests.cpp
         ${CMAKE_CURRENT_LIST_DIR}/flow_table_tests.cpp

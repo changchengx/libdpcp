@@ -126,6 +126,7 @@ status flow_rule_ex_prm::alloc_in_buff(size_t& in_len, std::unique_ptr<uint8_t[]
 
     // Allocate in buffer.
     in_len = DEVX_ST_SZ_BYTES(set_fte_in) + DEVX_ST_SZ_BYTES(dest_format_struct) * dest_list_size;
+    /* coverity[leaked_storage : FALSE] */
     in_mem_guard.reset(new (std::nothrow) uint8_t[in_len]);
     if (!in_mem_guard) {
         log_error("Flow rule in buf memory allocation failed\n");
@@ -239,7 +240,11 @@ status flow_rule_ex_prm::create()
     }
 
     uint32_t flow_rule_id = 0;
-    obj::get_id(flow_rule_id);
+    ret = obj::get_id(flow_rule_id);
+    if (ret != DPCP_OK) {
+        log_error("Flow rule failed to get ID\n");
+        return ret;
+    }
     log_trace("Flow rule created: id=0x%x\n", flow_rule_id);
 
     m_is_initialized = true;

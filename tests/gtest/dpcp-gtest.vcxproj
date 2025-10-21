@@ -187,6 +187,7 @@
     <ClCompile Include="dpcp\adapter_tests.cpp" />
     <ClCompile Include="dpcp\dek_tests.cpp" />
     <ClCompile Include="dpcp\dpcp_base.cpp" />
+    <ClCompile Include="dpcp\err_cqe_tests.cpp" />
     <ClCompile Include="dpcp\flow_group_tests.cpp" />
     <ClCompile Include="dpcp\flow_rule_ex_tests.cpp" />
     <ClCompile Include="dpcp\flow_table_tests.cpp" />

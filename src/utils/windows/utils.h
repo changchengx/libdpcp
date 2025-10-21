@@ -36,6 +36,7 @@
 #include <string>
 #include <vector>
 #include <stdlib.h>
+#include <windows.h>
 #include <sysinfoapi.h>
 
 #if defined(_WIN32) && BYTE_ORDER == LITTLE_ENDIAN

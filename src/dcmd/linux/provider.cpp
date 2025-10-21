@@ -30,6 +30,8 @@
  */
 
 #include <string>
+#include <memory>
+
 #include "utils/os.h"
 #include "dcmd/dcmd.h"
 
@@ -41,7 +43,7 @@ device** provider::get_device_list(size_t& size)
 {
     if (nullptr == m_dev_array) {
         struct ibv_device** device_list;
-        int i, num_devices;
+        int i, num_devices = 0;
         m_dev_array_size = 0;
 
         /* get device list using verbs */
@@ -73,29 +75,32 @@ exit:
 
 device* provider::create_device(dev_handle handle)
 {
-    device* obj_ptr = nullptr;
+    std::unique_ptr<device> obj_ptr;
     bool can_be_open = false;
     try {
-        obj_ptr = new device(handle);
+        obj_ptr = std::make_unique<device>(handle);
         // test if device can be opened
-        ctx* ctx_obj = obj_ptr->create_ctx();
+        std::unique_ptr<ctx> ctx_obj(obj_ptr->create_ctx());
         if (ctx_obj) {
             can_be_open = true;
             auto ptr = obj_ptr->get_ibv_device_attr();
             if (ptr == nullptr) {
                 log_warn("query device failed! errno=%d\n", errno);
             }
-            delete ctx_obj;
         }
+    } catch (const std::bad_alloc& e) {
+        log_error("Failed to create device: memory allocation failed (%s)\n", e.what());
+        return nullptr;
+    } catch (const std::exception& e) {
+        log_error("Failed to create device: %s\n", e.what());
+        return nullptr;
     } catch (...) {
-        if (obj_ptr) {
-            delete obj_ptr;
-        }
+        log_error("Failed to create device: unknown exception\n");
         return nullptr;
     }
 
     if (can_be_open) {
-        return obj_ptr;
+        return obj_ptr.release();
     }
     return nullptr;
 }

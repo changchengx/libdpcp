@@ -83,6 +83,7 @@ status flow_action_modify::prepare_prm_modify_buff()
     // Allocate in buffer
     m_inlen = DEVX_ST_SZ_BYTES(alloc_modify_header_context_in) +
         DEVX_UN_SZ_BYTES(set_add_copy_action_in_auto) * m_attr.actions.size();
+    /* coverity[leaked_storage : FALSE] */
     m_in.reset(new (std::nothrow) uint8_t[m_inlen]);
     if (!m_in) {
         log_error("Flow Action modify in buffer allocation failed\n");
@@ -285,6 +286,7 @@ status flow_action_reformat::alloc_reformat_insert_action(std::unique_ptr<uint8_
     // Allocate in buffer
     in_len = DEVX_ST_SZ_BYTES(alloc_packet_reformat_context_in) + attr.insert.data_len;
     in_len += sizeof(uint32_t) - (in_len % sizeof(uint32_t));
+    /* coverity[leaked_storage : FALSE] */
     in_mem_guard.reset(new (std::nothrow) uint8_t[in_len]);
     void* in = in_mem_guard.get();
     if (!in) {
@@ -472,7 +474,7 @@ status flow_action_fwd::create_root_action_fwd()
     std::vector<dcmd::fwd_dst_desc> dst_desc_vec;
 
     for (size_t i = 0; i < num_dest_obj; i++) {
-        dcmd::fwd_dst_desc dst_desc;
+        dcmd::fwd_dst_desc dst_desc = {};
         ret = m_dests[i]->get_fwd_desc(dst_desc);
         if (ret != DPCP_OK) {
             log_error("Flow Action forward, failed to get forward dest description, ret %d\n", ret);

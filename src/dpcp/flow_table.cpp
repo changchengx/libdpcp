@@ -99,7 +99,13 @@ status flow_table::create_flow_group(const flow_group_attr& attr, std::weak_ptr<
         return ret;
     }
 
-    std::weak_ptr<flow_table> weak_from_this = shared_from_this();
+    std::weak_ptr<flow_table> weak_from_this;
+    try {
+        weak_from_this = shared_from_this();
+    } catch (const std::bad_weak_ptr&) {
+        log_error("Flow table is not managed by shared_ptr\n");
+        return DPCP_ERR_INVALID_PARAM;
+    }
     std::shared_ptr<flow_group> fg(new (std::nothrow) FG(get_ctx(), attr, weak_from_this));
     if (!fg) {
         log_error("Flow Group allocation failed\n");

@@ -93,7 +93,7 @@ int compchannel::request(compchannel_ctx& cc_ctx)
     }
 
     uint32_t num_events = 0;
-    mlx5dv_devx_async_event_hdr event_hdr;
+    mlx5dv_devx_async_event_hdr event_hdr = {};
     ssize_t ret;
 
     do {

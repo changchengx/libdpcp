@@ -32,6 +32,7 @@ target_sources(${PROJECT_NAME}
         ${CMAKE_CURRENT_LIST_DIR}/parser_graph_node.cpp
         ${CMAKE_CURRENT_LIST_DIR}/rq.cpp
         ${CMAKE_CURRENT_LIST_DIR}/sq.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/err_cqe.cpp
         ${CMAKE_CURRENT_LIST_DIR}/tag_buffer_table_obj.cpp
         ${CMAKE_CURRENT_LIST_DIR}/tir.cpp
         ${CMAKE_CURRENT_LIST_DIR}/tis.cpp

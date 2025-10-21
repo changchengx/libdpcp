@@ -57,7 +57,7 @@ function map_os_and_arch {
             ;;
 
         rhel|ol)
-            OS="${ID}${VERSION_ID}"
+            OS="${ID}${VERSION_ID%%.*}"
             GPG_KEY_CMD='rpm --import "${GPG_KEY}"'
             REPO_CMD='yum install -y yum-utils && yum-config-manager --add-repo "${REPO_URL}"'
             PKG_TYPE="rpm"
@@ -66,6 +66,22 @@ function map_os_and_arch {
             UPDATE_CMD="makecache"
             ;;
 
+            ctyunos|openEuler)
+                        OS="${ID}${VERSION_ID}"
+                        GPG_KEY_CMD='rpm --import "${GPG_KEY}"'
+                        REPO_CMD="cat <<EOF | sed 's/^[ \t]*//' > /etc/yum.repos.d/doca.repo
+[doca]
+name=DOCA
+baseurl=\${REPO_URL}
+enabled=1
+gpgcheck=1
+EOF
+"
+            PKG_TYPE="rpm"
+            PKG_TOOL="rpm"
+            PKG_MGR="dnf --nogpgcheck"
+            UPDATE_CMD="makecache"
+            ;;
         *)
             echo "Unsupported OS: $ID"
             return 1
@@ -85,7 +101,7 @@ function map_os_and_arch {
 map_os_and_arch
 
 # Install DOCA repo GPG key
-curl -o "${GPG_KEY}" "${DOCA_REPO_PATH}/${DOCA_VERSION}/${OS}/${ARCH}/${DOCA_BRANCH}/${GPG_KEY}" 
+curl -o "${GPG_KEY}" "${DOCA_REPO_PATH}/${DOCA_VERSION}/${OS}/${ARCH}/${DOCA_BRANCH}/${GPG_KEY}"
 eval "${GPG_KEY_CMD}"
 
 # Install DOCA repo
@@ -93,12 +109,11 @@ REPO_URL="${DOCA_REPO_PATH}/${DOCA_VERSION}/${OS}/${ARCH}/${DOCA_BRANCH}/"
 eval "${REPO_CMD}"
 
 # Install DOCA
-${PKG_MGR} ${UPDATE_CMD} 
+${PKG_MGR} ${UPDATE_CMD}
 ${PKG_MGR} install -y doca-ofed-userspace
 
 echo "=============================================="
-echo 
+echo
 echo "DOCA for Host has been successfully installed"
 echo
 echo "=============================================="
-

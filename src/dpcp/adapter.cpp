@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2019-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2019-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * BSD-3-Clause
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,20 @@ static void store_hca_device_frequency_khz_caps(adapter_hca_capabilities* extern
     external_hca_caps->device_frequency_khz = DEVX_GET(query_hca_cap_out, general_cap->second,
                                                        capability.cmd_hca_cap.device_frequency_khz);
     log_trace("Capability - device_frequency_khz: %d\n", external_hca_caps->device_frequency_khz);
+}
+
+static void store_hca_device_qp_caps(adapter_hca_capabilities* external_hca_caps,
+                                     const caps_map_t& caps_map)
+{
+    auto general_cap = caps_map.find(MLX5_CAP_GENERAL);
+    if (general_cap == caps_map.end()) {
+        log_fatal("Incorrect caps_map object - couldn't find MLX5_CAP_GENERAL\n");
+        return;
+    }
+
+    external_hca_caps->log_max_qp_sz =
+        DEVX_GET(query_hca_cap_out, general_cap->second, capability.cmd_hca_cap.log_max_qp_sz);
+    log_trace("Capability - log_max_qp_sz: %d\n", external_hca_caps->log_max_qp_sz);
 }
 
 static void store_hca_tls_caps(adapter_hca_capabilities* external_hca_caps,
@@ -288,10 +302,37 @@ static void store_hca_ibq_caps(adapter_hca_capabilities* external_hca_caps,
     log_trace("Capability - ibq_wire_protocol: 0x%llx\n",
               static_cast<unsigned long long>(external_hca_caps->ibq_wire_protocol));
 
+    external_hca_caps->max_scatter_size =
+        DEVX_GET(query_hca_cap_out, dpp_cap->second, capability.ibq_cap.max_scatter_size);
+    log_trace("Capability - max_scatter_size: %d\n", external_hca_caps->max_scatter_size);
+
+    external_hca_caps->log_min_ibq_segment_size =
+        DEVX_GET(query_hca_cap_out, dpp_cap->second, capability.ibq_cap.log_min_ibq_segment_size);
+    log_trace("Capability - log_min_ibq_segment_size: %d (IBQ min segment size in bytes: %llu)\n",
+              external_hca_caps->log_min_ibq_segment_size,
+              1ULL << external_hca_caps->log_min_ibq_segment_size);
+
+    external_hca_caps->log_max_ibq_segment_size =
+        DEVX_GET(query_hca_cap_out, dpp_cap->second, capability.ibq_cap.log_max_ibq_segment_size);
+    log_trace("Capability - log_max_ibq_segment_size: %d (IBQ max segment size in bytes: %llu)\n",
+              external_hca_caps->log_max_ibq_segment_size,
+              1ULL << external_hca_caps->log_max_ibq_segment_size);
+
     external_hca_caps->ibq_max_scatter_offset =
         DEVX_GET(query_hca_cap_out, dpp_cap->second, capability.ibq_cap.ibq_max_scatter_offset);
     log_trace("Capability - ibq_max_scatter_offset: %d\n",
               external_hca_caps->ibq_max_scatter_offset);
+
+    external_hca_caps->log_max_ibq_buffer_size =
+        DEVX_GET(query_hca_cap_out, dpp_cap->second, capability.ibq_cap.log_max_ibq_buffer_size);
+    log_trace("Capability - log_max_ibq_buffer_size: %d (IBQ max buffer size in bytes: %llu)\n",
+              external_hca_caps->log_max_ibq_buffer_size,
+              1ULL << external_hca_caps->log_max_ibq_buffer_size);
+
+    external_hca_caps->max_psn_size_supported =
+        DEVX_GET(query_hca_cap_out, dpp_cap->second, capability.ibq_cap.max_psn_size_supported);
+    log_trace("Capability - max_psn_size_supported: %d\n",
+              external_hca_caps->max_psn_size_supported);
 }
 
 static void store_hca_parse_graph_node_caps(adapter_hca_capabilities* external_hca_caps,
@@ -746,6 +787,7 @@ static void store_hca_nvmeotcp_caps(adapter_hca_capabilities* external_hca_caps,
 
 static const std::vector<cap_cb_fn> caps_callbacks = {
     store_hca_device_frequency_khz_caps,
+    store_hca_device_qp_caps,
     store_hca_tls_caps,
     store_hca_general_object_types_encryption_key_caps,
     store_hca_log_max_dek_caps,
@@ -1169,20 +1211,18 @@ status adapter::create_cq(const cq_attr& attrs, cq*& out_cq)
             return DPCP_ERR_NO_MEMORY;
         }
     }
-    cq* cq64 = new (std::nothrow) cq(this, attrs);
+    std::unique_ptr<cq> cq64(new (std::nothrow) cq(this, attrs));
     if (nullptr == cq64) {
         return DPCP_ERR_NO_MEMORY;
     }
     // Obrain UAR for new CQ
-    uar cq_uar = m_uarpool->get_uar(cq64);
+    uar cq_uar = m_uarpool->get_uar(cq64.get());
     if (nullptr == cq_uar) {
-        delete cq64;
         return DPCP_ERR_ALLOC_UAR;
     }
     uar_t uar_p;
     status ret = m_uarpool->get_uar_page(cq_uar, uar_p);
     if (DPCP_OK != ret) {
-        delete cq64;
         return ret;
     }
     // Allocate CQ Buf
@@ -1190,14 +1230,11 @@ status adapter::create_cq(const cq_attr& attrs, cq*& out_cq)
     size_t cq_buf_sz = cq64->get_cq_buf_sz();
     ret = cq64->allocate_cq_buf(cq_buf, cq_buf_sz);
     if (DPCP_OK != ret) {
-        delete cq64;
         return ret;
     }
     // Register UMEM for CQ Buffer
     ret = reg_mem(get_ctx(), (void*)cq_buf, cq_buf_sz, cq64->m_cq_buf_umem, cq64->m_cq_buf_umem_id);
     if (DPCP_OK != ret) {
-        cq64->release_cq_buf(cq_buf);
-        delete cq64;
         return ret;
     }
     log_trace("create_cq Buf: 0x%p sz: 0x%x umem_id: %x\n", cq_buf, (uint32_t)cq_buf_sz,
@@ -1208,18 +1245,11 @@ status adapter::create_cq(const cq_attr& attrs, cq*& out_cq)
     size_t db_rec_sz = 0;
     ret = cq64->allocate_db_rec(db_rec, db_rec_sz);
     if (DPCP_OK != ret) {
-        delete cq64->m_cq_buf_umem;
-        cq64->release_cq_buf(cq_buf);
-        delete cq64;
         return ret;
     }
     // Register UMEM for DoorBell record
     ret = reg_mem(get_ctx(), (void*)db_rec, db_rec_sz, cq64->m_db_rec_umem, cq64->m_db_rec_umem_id);
     if (DPCP_OK != ret) {
-        cq64->release_db_rec(db_rec);
-        delete cq64->m_cq_buf_umem;
-        cq64->release_cq_buf(cq_buf);
-        delete cq64;
         return ret;
     }
     log_trace("create_cq DB: 0x%p sz: 0x%zx umem_id: %x\n", db_rec, db_rec_sz,
@@ -1227,20 +1257,14 @@ status adapter::create_cq(const cq_attr& attrs, cq*& out_cq)
 
     ret = cq64->init(&uar_p);
     if (DPCP_OK == ret) {
-        out_cq = cq64;
-    } else {
-        delete cq64->m_db_rec_umem;
-        cq64->release_db_rec(db_rec);
-        delete cq64->m_cq_buf_umem;
-        cq64->release_cq_buf(cq_buf);
-        delete cq64;
+        out_cq = cq64.release();
     }
     return ret;
 }
 
 status adapter::prepare_basic_rq(basic_rq& srq)
 {
-    // Obrain UAR for new RQ
+    // Obtain UAR for new RQ
     uar rq_uar = m_uarpool->get_uar(&srq);
     if (nullptr == rq_uar) {
         return DPCP_ERR_ALLOC_UAR;
@@ -1443,7 +1467,7 @@ status adapter::create_comp_channel(comp_channel*& out_cch)
 
 status adapter::query_eqn(uint32_t& eqn, uint32_t cpu_vector)
 {
-    uint32_t e;
+    uint32_t e = 0;
     if (!m_dcmd_ctx->query_eqn(cpu_vector, e)) {
         eqn = m_eqn = e;
         log_trace("query_eqn: %d for cpu_vector 0x%x\n", eqn, cpu_vector);
@@ -1466,7 +1490,7 @@ status adapter::create_pp_sq(sq_attr& sq_attr, pp_sq*& packet_pacing_sq)
         return DPCP_ERR_NO_MEMORY;
     }
     packet_pacing_sq = ppsq;
-    // Obrain UAR for new SQ
+    // Obtain UAR for new SQ
     uar sq_uar = m_uarpool->get_uar(ppsq);
     if (nullptr == sq_uar) {
         return DPCP_ERR_ALLOC_UAR;

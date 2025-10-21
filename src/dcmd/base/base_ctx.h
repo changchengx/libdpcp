@@ -33,6 +33,7 @@
 #define SRC_DCMD_BASE_CTX_H_
 
 #include <vector>
+#include <memory>
 
 #include "action.h"
 #include "dcmd/dcmd.h"
@@ -68,7 +69,7 @@ inline std::unique_ptr<action_fwd> base_ctx::create_action_fwd(
     std::unique_ptr<action_fwd> action_ptr;
 
     try {
-        action_ptr.reset(new action_fwd(dests));
+        action_ptr = std::make_unique<action_fwd>(dests);
     } catch (...) {
         return std::unique_ptr<action_fwd>(nullptr);
     }

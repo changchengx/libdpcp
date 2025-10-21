@@ -218,6 +218,7 @@
     <ClCompile Include="src\dpcp\dpcp.cpp" />
     <ClCompile Include="src\dpcp\dpcp_obj.cpp" />
     <ClCompile Include="src\dpcp\eq.cpp" />
+    <ClCompile Include="src\dpcp\err_cqe.cpp" />
     <ClCompile Include="src\dpcp\flow_action.cpp" />
     <ClCompile Include="src\dpcp\flow_group.cpp" />
     <ClCompile Include="src\dpcp\flow_matcher.cpp" />

@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
- * Copyright (c) 2019-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * Copyright (c) 2019-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * BSD-3-Clause
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@
 using std::function;
 using std::unordered_map;
 
-static const char* dpcp_version = "1.1.55";
+static const char* dpcp_version = "1.1.59";
 
 #if defined(__linux__)
 typedef void* LPOVERLAPPED;
@@ -124,6 +124,34 @@ enum dpcp_ibq_protocol {
     DPCP_IBQ_2110_EXT = 0x1, /**< 32 bit RTP sequence number */
     DPCP_IBQ_ORAN_ECPRI = 0x4, /**< ORAN eCPRI protocol */
     DPCP_IBQ_NOT_INITIALIZED
+};
+
+/**
+ * @brief class err_cqe - Error CQE syndrome decoder utilities
+ */
+class err_cqe {
+public:
+    /**
+     * @brief Decode IB standard CQE syndrome to human-readable string
+     *
+     * Syndromes per InfiniBand Architecture Specification.
+     *
+     * @param syndrome The syndrome byte from error CQE
+     * @return Description string, or "Unknown" if syndrome is unknown
+     */
+    static std::string decode_syndrome(uint8_t syndrome);
+
+    /**
+     * @brief Decode vendor-specific CQE syndrome to human-readable string
+     *
+     * Syndromes per golan_flush_synd.h (authoritative FW source).
+     * For TPT syndromes, the 3-bit detail is automatically appended.
+     * For RNR NAK range (0xA0-0xBF), the 5-bit timer value is extracted.
+     *
+     * @param vendor_error_syndrome The vendor_error_syndrome byte from error CQE
+     * @return Description string, or "Unknown" if unknown
+     */
+    static std::string decode_vendor_error_syndrome(uint8_t vendor_error_syndrome);
 };
 
 class obj {
@@ -2306,6 +2334,8 @@ struct nvmeotcp_capabilities {
 typedef struct adapter_hca_capabilities {
     uint32_t device_frequency_khz; /**< Internal device frequency given in KHz.
                                       Valid only if non-zero. */
+    uint8_t log_max_qp_sz; /**< Log (base 2) of the maximum number of WQEs/WQEBBs allowed on
+                              the RQ or the SQ of a QP. */
     bool tls_tx; /**< If set, TLS offload for transmitted traffic is supported */
     bool tls_rx; /**< If set, TLS offload for received traffic is supported */
     bool tls_1_2_aes_gcm_128; /**< If set, aes_gcm cipher with TLS 1.2 and 128 bit
@@ -2352,7 +2382,16 @@ typedef struct adapter_hca_capabilities {
                                                microseconds. */
     bool ibq; /** <indicates Inline Buffer Queue capability (IBQ) */
     uint64_t ibq_wire_protocol; /**< List of supported protocols for IBQ @ref dpcp_ibq_protocol */
+    uint16_t max_scatter_size; /**< IBQ Maximum scatter size */
+    uint8_t log_min_ibq_segment_size; /**< IBQ Log (base 2) of the minimum supported size of
+                                         scattered data per packet in granularity of Bytes */
+    uint8_t log_max_ibq_segment_size; /**< IBQ Log (base 2) of the maximum supported size of
+                                         scattered data per packet in granularity of Bytes */
     uint16_t ibq_max_scatter_offset; /**< IBQ maximum supported scatter offset */
+    uint8_t log_max_ibq_buffer_size; /**< IBQ Log (base 2) of the maximum supported buffer size in
+                                        granularity of Bytes */
+    uint8_t
+        max_psn_size_supported; /**< IBQ The maximum number of bits in packet to represent PSN */
     bool general_object_types_parse_graph_node; /**< If set, creation of programmable parse graph
                                                    node is supported. */
     uint32_t parse_graph_node_in; /**< Bitmask for the supported protocol headers that programmable

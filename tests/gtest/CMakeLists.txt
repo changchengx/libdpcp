@@ -25,51 +25,38 @@ if(ENABLE_CUDA)
 endif()
 
 add_executable(${PROJECT_NAME})
-target_sources(${PROJECT_NAME} 
-    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/main.cpp 
+target_sources(${PROJECT_NAME}
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/main.cpp
     PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include/getopt.h
 )
-target_include_directories(${PROJECT_NAME} 
+target_include_directories(${PROJECT_NAME}
     PUBLIC ${CMAKE_CURRENT_LIST_DIR}
     PRIVATE $<$<BOOL:${ENABLE_CUDA}>:${CUDA_INCLUDE_DIRS}>
 )
 find_package(Threads REQUIRED)
-target_link_libraries(${PROJECT_NAME} 
-    dpcp 
-    dpcp_common_deps 
-    Threads::Threads 
+target_link_libraries(${PROJECT_NAME}
+    dpcp
+    dpcp_common_deps
+    Threads::Threads
     $<$<BOOL:${ENABLE_CUDA}>:cuda>
 )
 
 if (MSVC)
     set(DPCP_GTEST_C_CXX_FLAGS
-        /GS /TP /W4 /Gy 
-        /Zc:wchar_t 
-        /Zi /Gm-  
-        /Zc:inline /fp:fast 
+        /TP /W4 /Gy
+        /fp:fast
         /D_UNICODE /DUNICODE
-        /D_WIN64 
-        /D_AMD64_ 
-        /DAMD64 
-        /DWIN32_LEAN_AND_MEAN 
-        /D_CRT_SECURE_NO_WARNINGS 
-        /D_HAS_ITERATOR_DEBUGGING=0 
-        /D_SECURE_SCL=0 
-        /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS 
-        /D_NO_CRT_STDIO_INLINE 
-        /D_CRTIMP_= 
-        /D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING=1 
-        /DGTEST_HAS_PTHREAD=0 
-        /D_WINSOCK_DEPRECATED_NO_WARNINGS 
-        /D_HAS_EXCEPTIONS=1 
-        /errorReport:prompt 
-        /WX- 
-        /Zc:forScope 
-        /GR /Gz /Oi /MD 
-        /FC 
-        /EHsc /nologo
+        /DWIN32_LEAN_AND_MEAN
+        /D_CRT_SECURE_NO_WARNINGS
+        /D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING=1
+        /DGTEST_HAS_PTHREAD=0
+        /D_WINSOCK_DEPRECATED_NO_WARNINGS
+        /WX-
+        /Oi
+        /FC
     )
     target_include_directories(${PROJECT_NAME} PUBLIC include)
+    set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 else()
     set(DPCP_GTEST_C_CXX_FLAGS -g -fno-tree-vectorize)
 endif()

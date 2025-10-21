@@ -35,9 +35,9 @@
         - choice:
             name: DOCA_BRANCH
             choices:
-                - latest
-                - stage
                 - dev
+                - stage
+                - latest
             description: "On which DOCA branch to run?"
         - bool:
             name: "do_copyrights"
@@ -84,7 +84,6 @@
             failure-status: "[FAIL]"
             error-status:   "[FAIL]"
             status-add-test-results: true
-            # svc-nbu-swx-media from GitHub Pull Request Builder
             auth-id: 'svc-nbu-swx-media_GHPRB_ID'
             org-list: ["Mellanox"]
             allow-whitelist-orgs-as-admins: true
@@ -93,8 +92,7 @@
         scm:
             - git:
                 url: "{jjb_git}"
-                # swx-jenkins3 GH user/pass
-                credentials-id: 'swx-jenkins_ssh_key'
+                credentials-id: 'svc-nbu-swx-media_ssh_key'
                 branches: ['$sha1']
                 shallow-clone: false
                 # depth: 10

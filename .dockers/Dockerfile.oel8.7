@@ -1,15 +1,26 @@
 ARG ARCH=x86_64
-FROM harbor.mellanox.com/rivermax/dpcp/${ARCH}/oel8.7/core:8.7
+FROM nbu-harbor.gtm.nvidia.com/rivermax/dpcp/${ARCH}/oel8.7/core:8.7
+ARG WEBREPO_URL=webrepo.gtm.nvidia.com
+ARG ARCH
 ARG _UID=6213
 ARG _GID=101
 ARG _LOGIN=swx-jenkins
 ARG _HOME=/var/home/$_LOGIN
 
-RUN yum-config-manager --add-repo http://webrepo.mtr.labs.mlnx/OEL/8.7/x86_64/BaseOS/ && \
-    yum-config-manager --add-repo http://webrepo.mtr.labs.mlnx/OEL/8.7/x86_64/AppStream/ && \
-    yum-config-manager --set-disabled "*" && \
-    yum-config-manager --set-enabled "webrepo.mtr.labs.mlnx_OEL_8.7_x86_64_BaseOS_,webrepo.mtr.labs.mlnx_OEL_8.7_x86_64_AppStream_" && \
-    yum install --nogpgcheck --allowerasing -y \
+RUN yum-config-manager --disable \* && \
+    echo "[nv_webrepo_ol8.7_baseos]" > /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "name=Nvidia Webrepo - Oracle Linux 8.7 BaseOS" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "baseurl=http://${WEBREPO_URL}/OEL/8.7/${ARCH}/BaseOS/" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "gpgcheck=0" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "enabled=1" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "[nv_webrepo_ol8.7_appstream]" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "name=Nvidia Webrepo - Oracle Linux 8.7 Application Stream" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "baseurl=http://${WEBREPO_URL}/OEL/8.7/${ARCH}/AppStream/" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "gpgcheck=0" >> /etc/yum.repos.d/nvidia-webrepo.repo && \
+    echo "enabled=1 " >> /etc/yum.repos.d/nvidia-webrepo.repo
+
+RUN yum install --nogpgcheck --allowerasing -y \
     atk \
     autoconf \
     automake \
@@ -49,4 +60,3 @@ SHELL ["/bin/bash"]
 
 USER "$_LOGIN"
 ENTRYPOINT [ "/bin/bash", "--login", "--rcfile", "/etc/bashrc", "-c" ]
-

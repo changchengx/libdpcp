@@ -349,7 +349,7 @@ status striding_rq::create()
     DEVX_SET(wq, p_wq, wq_umem_valid, 0x1);
     //
     // Sets number of strides in each WQE
-    size_t single_wqe_log_num_of_strides;
+    size_t single_wqe_log_num_of_strides = 0;
     ret = get_hw_buff_stride_num(single_wqe_log_num_of_strides);
     if (DPCP_OK != ret) {
         return DPCP_ERR_INVALID_ID;

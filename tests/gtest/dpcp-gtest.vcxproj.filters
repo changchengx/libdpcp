@@ -58,6 +58,9 @@
     <ClCompile Include="dpcp\dpcp_base.cpp">
       <Filter>gtest\dpcp</Filter>
     </ClCompile>
+    <ClCompile Include="dpcp\err_cqe_tests.cpp">
+      <Filter>gtest\dpcp</Filter>
+    </ClCompile>
     <ClCompile Include="dpcp\flow_group_tests.cpp">
       <Filter>gtest\dpcp</Filter>
     </ClCompile>

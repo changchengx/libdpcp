@@ -59,7 +59,7 @@ status dek::create(const dek_attr& attr)
         return ret;
     }
 
-    key_params params;
+    key_params params = {};
     ret = get_key_params(attr.key_blob_size, attr.key_size, params);
     if (DPCP_OK != ret) {
         log_error("DEK failed to get key params, status %d", ret);
@@ -108,7 +108,7 @@ status dek::modify(const dek_attr& attr)
         return DPCP_ERR_INVALID_PARAM;
     }
 
-    key_params params;
+    key_params params = {};
     ret = get_key_params(attr.key_blob_size, attr.key_size, params);
     if (DPCP_OK != ret) {
         log_error("DEK failed to get key params, status %d", ret);

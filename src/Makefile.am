@@ -18,6 +18,7 @@ libdpcp_la_SOURCES = \
 	dpcp/dpcp.cpp \
 	dpcp/dpcp_obj.cpp \
 	dpcp/eq.cpp \
+	dpcp/err_cqe.cpp \
 	dpcp/internal.h \
 	dpcp/fr.cpp \
 	dpcp/mkey.cpp \

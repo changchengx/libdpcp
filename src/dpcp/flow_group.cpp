@@ -61,7 +61,7 @@ status flow_group::create()
     }
 
     // Create flow matcher.
-    flow_matcher_attr matcher_attr;
+    flow_matcher_attr matcher_attr = {};
     matcher_attr.match_criteria = m_attr.match_criteria;
     matcher_attr.match_criteria_enabled = m_attr.match_criteria_enable;
     m_matcher = std::make_shared<flow_matcher>(matcher_attr);
@@ -108,7 +108,14 @@ status flow_group::create_flow_rule_ex(const flow_rule_attr_ex& attr,
         return DPCP_ERR_NOT_APPLIED;
     }
 
-    std::weak_ptr<flow_group> weak_from_this = shared_from_this();
+    std::weak_ptr<flow_group> weak_from_this;
+    try {
+        weak_from_this = shared_from_this();
+    } catch (const std::bad_weak_ptr&) {
+        log_error("Flow group is not managed by shared_ptr\n");
+        return DPCP_ERR_INVALID_PARAM;
+    }
+
     std::shared_ptr<flow_rule_ex> fr(new (std::nothrow)
                                          FR(get_ctx(), attr, m_table, weak_from_this, m_matcher));
     if (!fr) {

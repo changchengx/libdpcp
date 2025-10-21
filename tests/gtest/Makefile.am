@@ -53,6 +53,7 @@ gtest_SOURCES = \
 	dpcp/sq_tests.cpp\
 	dpcp/parser_graph_node_tests.cpp\
 	dpcp/adapter_tests.cpp\
+	dpcp/err_cqe_tests.cpp\
 	dpcp/flow_table_tests.cpp\
 	dpcp/flow_group_tests.cpp\
 	dpcp/flow_rule_ex_tests.cpp

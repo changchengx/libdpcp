@@ -292,34 +292,34 @@ status flow_rule::apply_settings()
     dcmd_flow.num_dst_obj = m_dst_tir.size();
     // we would need tir objects for Linux and tir ids for Windows which fill in
     // mlx5_ifc_dest_format_struct_bits
-    uintptr_t* dst_tir_obj = new (std::nothrow) uintptr_t[dcmd_flow.num_dst_obj];
-    auto dst_formats = new (std::nothrow) mlx5_ifc_dest_format_struct_bits[dcmd_flow.num_dst_obj];
+    std::unique_ptr<uintptr_t[]> dst_tir_obj(new (std::nothrow) uintptr_t[dcmd_flow.num_dst_obj]);
+    std::unique_ptr<mlx5_ifc_dest_format_struct_bits[]> dst_formats(
+        new (std::nothrow) mlx5_ifc_dest_format_struct_bits[dcmd_flow.num_dst_obj]);
     if (!dst_tir_obj || !dst_formats) {
-        delete[] dst_formats;
-        delete[] dst_tir_obj;
         return DPCP_ERR_NO_MEMORY;
     }
-    memset(dst_formats, 0, DEVX_ST_SZ_BYTES(dest_format_struct) * dcmd_flow.num_dst_obj);
-
+    memset(dst_formats.get(), 0, DEVX_ST_SZ_BYTES(dest_format_struct) * dcmd_flow.num_dst_obj);
     for (uint32_t i = 0; i < dcmd_flow.num_dst_obj; i++) {
         if (DPCP_OK == m_dst_tir[i]->get_handle(dst_tir_obj[i])) {
             uint32_t tir_id = 0;
-            m_dst_tir[i]->get_id(tir_id);
-            DEVX_SET(dest_format_struct, dst_formats + i, destination_type,
+            auto ret = m_dst_tir[i]->get_id(tir_id);
+            if (ret != DPCP_OK) {
+                log_error("get_id failed %d tir[%i] %x\n", ret, i, tir_id);
+                return ret;
+            }
+            DEVX_SET(dest_format_struct, &dst_formats[i], destination_type,
                      MLX5_FLOW_DESTINATION_TYPE_TIR);
-            DEVX_SET(dest_format_struct, dst_formats + i, destination_id, tir_id);
-            uint32_t ud_id = DEVX_GET(dest_format_struct, dst_formats + i, destination_id);
+            DEVX_SET(dest_format_struct, &dst_formats[i], destination_id, tir_id);
+            uint32_t ud_id = DEVX_GET(dest_format_struct, &dst_formats[i], destination_id);
             log_trace("tir_id[%i] 0x%x (0x%x)\n", i, tir_id, ud_id);
         }
     }
-    dcmd_flow.dst_obj = (obj_handle*)dst_tir_obj;
-    dcmd_flow.dst_formats = dst_formats;
+    dcmd_flow.dst_obj = (obj_handle*)dst_tir_obj.get();
+    dcmd_flow.dst_formats = dst_formats.get();
 
     m_flow = ctx->create_flow(&dcmd_flow);
 
     m_changed = false;
-    delete[] dst_formats;
-    delete[] dst_tir_obj;
 
     if (nullptr == m_flow) {
         return DPCP_ERR_CREATE;
